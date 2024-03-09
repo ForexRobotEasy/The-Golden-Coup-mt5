@@ -1,0 +1,87 @@
+
+// Program: The Golden Coup mt5
+// Developer's Site: forexroboteasy.com
+// Development Name: Forex Robot Easy Team
+
+// Import necessary libraries
+#include <Trade\Trade.mqh>
+#include <Indicators\Indicators.mqh>
+
+// Initialize global variables
+int magicNumber = 123456; // Unique identifier for trades
+int stopLoss = 50; // Stop loss level in points
+int takeProfit = 100; // Take profit level in points
+double lotSize = 0.01; // Initial lot size
+double maxDrawdown = 0.10; // Maximum allowable drawdown
+
+// Define trade execution function
+void ExecuteTrade(int type)
+{
+    // Calculate lot size based on account balance and risk management
+    double accountBalance = AccountInfoDouble(ACCOUNT_BALANCE);
+    double maxLoss = accountBalance * maxDrawdown;
+    double maxLotSize = maxLoss / (stopLoss * 10);
+
+    // Adjust lot size if it exceeds the maximum allowable
+    lotSize = MathMin(lotSize, maxLotSize);
+
+    // Open trade based on type (0 for buy, 1 for sell)
+    if (type == 0)
+    {
+        Trade.Buy(lotSize, Symbol(), 0, 0, stopLoss, takeProfit, 'GoldenCoup', magicNumber);
+    }
+    else if (type == 1)
+    {
+        Trade.Sell(lotSize, Symbol(), 0, 0, stopLoss, takeProfit, 'GoldenCoup', magicNumber);
+    }
+}
+
+// Define market analysis function
+void AnalyzeMarket()
+{
+    // Get price action patterns and indicators
+    double currentPrice = SymbolInfoDouble(Symbol(), SYMBOL_ASK);
+    double previousPrice = SymbolInfoDouble(Symbol(), SYMBOL_CLOSE, 1);
+    double ma50 = iMA(Symbol(), PERIOD_H1, 50, 0, MODE_SMA, PRICE_CLOSE, 1);
+    double ma200 = iMA(Symbol(), PERIOD_H1, 200, 0, MODE_SMA, PRICE_CLOSE, 1);
+
+    // Check for buy opportunity
+    if (currentPrice > previousPrice && currentPrice > ma50 && currentPrice > ma200)
+    {
+        ExecuteTrade(0); // Open buy trade
+    }
+    // Check for sell opportunity
+    else if (currentPrice < previousPrice && currentPrice < ma50 && currentPrice < ma200)
+    {
+        ExecuteTrade(1); // Open sell trade
+    }
+}
+
+// Define main program function
+void OnTick()
+{
+    AnalyzeMarket(); // Analyze market conditions and execute trades
+}
+
+// Define program initialization function
+void OnInit()
+{
+    EventSetTimer(60); // Set timer to trigger OnTick function every 1 minute
+}
+
+// Define program termination function
+void OnDeinit(const int reason)
+{
+    EventKillTimer(); // Stop timer
+}
+
+// Define program entry point
+void OnStart()
+{
+    OnInit(); // Initialize program
+    while (!IsStopped())
+    {
+        OnTick(); // Execute main program function
+    }
+    OnDeinit(0); // Terminate program
+}
